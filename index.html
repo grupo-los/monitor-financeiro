@@ -423,7 +423,7 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 <script>
 
 // ── FETCH HELPER (GitHub Pages → Apps Script) ──
-var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyrcA9lLZ290t6giXB25XjTEbDwGVzKt0IxEBkOAKF-5E_nozcB6QvyVWCZUq2COhA2/exec';
+var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyshi4BbhLAT012Hw6id_jAVw8I0GdrjKnEVacwuIaE7nW9CDSiXcJrGTOMQW0c_7Pp/exec';
 function callScript(acao) {
   return fetch(SCRIPT_URL + '?acao=' + acao, {redirect:'follow'})
     .then(function(r){ return r.json(); })
