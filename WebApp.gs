@@ -8,7 +8,12 @@ var ABA_CUSTO_SOLICIT = 'CUSTO SOLICITADO';
 var ABA_DIARIAS      = 'DIARIAS CD';
 var ABA_MOTORISTAS   = 'MOTORISTAS';
 
-function responder(obj) {
+function responder(obj, callback) {
+  if (callback) {
+    return ContentService
+      .createTextOutput(callback + '(' + JSON.stringify(obj) + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
   return ContentService
     .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
@@ -17,16 +22,16 @@ function responder(obj) {
 // ── GET: serve HTML (quando acessado direto) ou dados ──
 function doGet(e) {
   var acao = (e && e.parameter && e.parameter.acao) ? e.parameter.acao : null;
+  var callback = (e && e.parameter && e.parameter.callback) ? e.parameter.callback : null;
   if (!acao) {
-    // Serve o HTML normalmente (acesso direto pelo Apps Script URL)
     return HtmlService.createHtmlOutputFromFile('index')
       .setTitle('Monitoramento Financeiro')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
-  if (acao === 'motoristas') return responder(getMotoristasList());
-  if (acao === 'registros')  return responder(getRegistrosList());
-  if (acao === 'diarias')    return responder(getDiariasList());
-  return responder({ erro: 'Ação GET não encontrada: ' + acao });
+  if (acao === 'motoristas') return responder(getMotoristasList(), callback);
+  if (acao === 'registros')  return responder(getRegistrosList(), callback);
+  if (acao === 'diarias')    return responder(getDiariasList(), callback);
+  return responder({ erro: 'Ação GET não encontrada: ' + acao }, callback);
 }
 
 // ── POST: operações de escrita ──
@@ -120,9 +125,11 @@ function getRegistrosList() {
 function salvarRegistroWeb(dados) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var ws = ss.getSheetByName(ABA_CUSTO_SOLICIT);
-  var col = ws.getRange('E:E').getValues();
+  var colA = ws.getRange('A:A').getValues();
   var ultima = 1;
-  for (var i = 0; i < col.length; i++) { if (col[i][0] !== '') ultima = i+1; }
+  for (var i = 1; i < colA.length; i++) {
+    if (String(colA[i][0]).trim() !== '') ultima = i + 1;
+  }
   ultima++;
   var valor = Number(dados.valor) || 0;
   var status = valor < 0 ? 'NEGATIVAR' : 'SELECIONAR';
@@ -214,9 +221,11 @@ function getDiariasList() {
 function salvarDiariaWeb(dados) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var ws = ss.getSheetByName(ABA_DIARIAS);
-  var col = ws.getRange('F:F').getValues();
+  var colA = ws.getRange('A:A').getValues();
   var ultima = 1;
-  for (var i = 0; i < col.length; i++) { if (col[i][0] !== '') ultima = i+1; }
+  for (var i = 1; i < colA.length; i++) {
+    if (String(colA[i][0]).trim() !== '') ultima = i + 1;
+  }
   ultima++;
   var vd = Number(dados.vd) || 0;
   var vo = Number(dados.vo) || 0;
