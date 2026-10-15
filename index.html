@@ -422,12 +422,32 @@ body{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 
 <script>
 
-// ── FETCH HELPER (GitHub Pages → Apps Script) ──
+// ── FETCH HELPER (GitHub Pages → Apps Script via JSONP) ──
 var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyshi4BbhLAT012Hw6id_jAVw8I0GdrjKnEVacwuIaE7nW9CDSiXcJrGTOMQW0c_7Pp/exec';
 function callScript(acao) {
-  return fetch(SCRIPT_URL + '?acao=' + acao, {redirect:'follow'})
-    .then(function(r){ return r.json(); })
-    .then(function(r){ if(r && r.erro) throw new Error(r.erro); return r; });
+  return new Promise(function(resolve, reject) {
+    var cb = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+    var script = document.createElement('script');
+    var timeout = setTimeout(function() {
+      delete window[cb];
+      document.body.removeChild(script);
+      reject(new Error('Timeout'));
+    }, 30000);
+    window[cb] = function(r) {
+      clearTimeout(timeout);
+      delete window[cb];
+      document.body.removeChild(script);
+      if(r && r.erro) reject(new Error(r.erro));
+      else resolve(r);
+    };
+    script.src = SCRIPT_URL + '?acao=' + acao + '&callback=' + cb;
+    script.onerror = function() {
+      clearTimeout(timeout);
+      delete window[cb];
+      reject(new Error('Failed to fetch'));
+    };
+    document.body.appendChild(script);
+  });
 }
 function postScript(acao, dados) {
   return fetch(SCRIPT_URL, {
@@ -557,6 +577,8 @@ function setupAC(inputId, listId, onSelect) {
 function setupCalcExtra(){
   document.getElementById('vRecibo').addEventListener('input', calcExtra);
   document.getElementById('vOtm').addEventListener('input', calcExtra);
+  document.getElementById('vRecibo').addEventListener('change', calcExtra);
+  document.getElementById('vOtm').addEventListener('change', calcExtra);
 }
 function calcExtra(){
   var rec=parseFloat(document.getElementById('vRecibo').value)||0;
@@ -619,7 +641,9 @@ function salvar(){
   if(!document.getElementById('vRecibo').value){ toast('Informe o valor recibo!','err'); return; }
   var btn=document.getElementById('btn-salvar');
   btn.disabled=true; btn.innerHTML='<span class="spin">↻</span> Salvando...';
-  postScript('salvarRegistro',{mot:mot,rem:rem,evt:evt,valor:valorCalc}).then(function(){
+  calcExtra();
+  var valorFinal = valorCalc;
+  postScript('salvarRegistro',{mot:mot,rem:rem,evt:evt,valor:valorFinal}).then(function(){
       toast('Registro salvo! ✓','ok');
       ['mot-input','remessa','evento','vRecibo','vOtm'].forEach(function(id){ document.getElementById(id).value=''; });
       valorCalc=0; calcExtra();
